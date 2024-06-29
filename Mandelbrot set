@@ -1,0 +1,58 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from IPython.display import HTML
+import colorsys
+
+def mandelbrot(h, w, maxit, xmin, xmax, ymin, ymax):
+    y, x = np.ogrid[ymin:ymax:h*1j, xmin:xmax:w*1j]
+    c = x + y*1j
+    z = c
+    divtime = maxit + np.zeros(z.shape, dtype=int)
+    for i in range(maxit):
+        z = z**2 + c
+        diverge = z*np.conj(z) > 2**2
+        div_now = diverge & (divtime == maxit)
+        divtime[div_now] = i
+        z[diverge] = 2
+    return divtime
+
+def create_colormap(n):
+    colors = []
+    for i in range(n):
+        hue = i / n
+        saturation = 1.0
+        value = 1.0
+        rgb = colorsys.hsv_to_rgb(hue, saturation, value)
+        colors.append(rgb)
+    return colors
+
+fig, ax = plt.subplots(figsize=(10, 8))
+h, w = 500, 750
+maxit = 100
+
+# Center point to zoom into
+center_x, center_y = -0.743643887037158704752191506114774, 0.131825904205311970493132056385139
+zoom_factor = 0.95
+
+def animate(i):
+    zoom = zoom_factor**i
+    xmin, xmax = center_x - 1.5*zoom, center_x + 1.5*zoom
+    ymin, ymax = center_y - 1*zoom, center_y + 1*zoom
+    
+    mandelbrot_set = mandelbrot(h, w, maxit, xmin, xmax, ymin, ymax)
+    
+    # Create a cycling colormap
+    colors = create_colormap(maxit)
+    color_cycle = i % maxit
+    colors = colors[color_cycle:] + colors[:color_cycle]
+    
+    im = ax.imshow(mandelbrot_set, cmap=plt.cm.colors.ListedColormap(colors), 
+                   extent=[xmin, xmax, ymin, ymax])
+    ax.set_title(f'Mandelbrot Set Infinite Zoom: Frame {i+1}')
+    return [im]
+
+anim = FuncAnimation(fig, animate, frames=1000, interval=50, blit=True, repeat=True)
+
+# Display the animation in the notebook
+HTML(anim.to_jshtml())
